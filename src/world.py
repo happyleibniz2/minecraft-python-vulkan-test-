@@ -514,6 +514,14 @@ class World:
 		self.visible_chunks = [
 			self.chunks[chunk_position] for chunk_position in self.chunks if self.can_render_chunk(chunk_position)
 		]
+		if self.chunks and not self.visible_chunks and self.time % 120 == 0:
+			player_chunk = self.get_chunk_position(self.player.position) if self.player else None
+			logging.warning(
+				"No chunks visible after culling: total_chunks=%d player_chunk=%s render_distance=%s",
+				len(self.chunks),
+				player_chunk,
+				self.options.RENDER_DISTANCE,
+			)
 		self.sort_chunks()
 
 	def sort_chunks(self):

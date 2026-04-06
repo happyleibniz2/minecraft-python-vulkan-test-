@@ -132,6 +132,12 @@ class Window:
 				except Exception:
 					pass
 
+			logging.info(
+				"Vulkan init summary: chunks=%d player_pos=%s",
+				len(self.world.chunks),
+				tuple(round(v, 2) for v in self.player.position),
+			)
+
 			# skip GL-specific initialization below
 			return
 
@@ -162,11 +168,13 @@ Display: {gl.gl_info.get_renderer()}
 
 		# create world
 		self.world = World(self.shader, None, self.texture_manager, self.options)
+		logging.info("World initialized: chunks=%d", len(self.world.chunks))
 
 		# player stuff
 		logging.info("Setting up player & camera")
 		self.player = Player(self.world, self.shader, self.width, self.height)
 		self.world.player = self.player
+		logging.info("Player initialized at %s", tuple(round(v, 2) for v in self.player.position))
 
 		# schedule-like behaviour: we'll call these in the main loop
 		self._scheduled = []
@@ -321,6 +329,17 @@ Display: {gl.gl_info.get_renderer()}
 
 		self.world.tick(delta_time)
 
+		if self.world.time % 120 == 0:
+			logging.info(
+				"Tick diagnostics: time=%d chunks=%d visible=%d pending_updates=%d built_queue=%d player=%s",
+				self.world.time,
+				len(self.world.chunks),
+				len(self.world.visible_chunks),
+				self.world.pending_chunk_update_count,
+				len(self.world.chunk_building_queue),
+				tuple(round(v, 2) for v in self.player.position),
+			)
+
 	def on_draw(self):
 		# If Vulkan renderer is available, delegate drawing to it.
 		if getattr(self, "vulkan", None):
@@ -380,10 +399,16 @@ class Game:
 					try:
 						func()
 					except Exception:
-						pass
+						logging.exception("Scheduled function %s failed (no-arg fallback)", getattr(func, "__name__", repr(func)))
+				except Exception:
+					logging.exception("Scheduled function %s failed", getattr(func, "__name__", repr(func)))
 
 			# per-frame draw
-			self.window.on_draw()
+			try:
+				self.window.on_draw()
+			except Exception:
+				logging.exception("Draw call failed")
+				raise
 
 			# With Vulkan (NO_API) we should not call swap_buffers; the renderer presents.
 			if getattr(self.window, "vulkan", None) is None:
@@ -395,7 +420,7 @@ class Game:
 
 
 def init_logger():
-	log_folder = "logs/"
+	log_folder = "logs"
 	log_filename = f"{time.time()}.log"
 	log_path = os.path.join(log_folder, log_filename)
 
@@ -410,6 +435,15 @@ def init_logger():
 		filename=log_path,
 		format="[%(asctime)s] [%(processName)s/%(threadName)s/%(levelname)s] (%(module)s.py/%(funcName)s) %(message)s",
 	)
+
+	def _log_uncaught(exc_type, exc_value, exc_traceback):
+		if issubclass(exc_type, KeyboardInterrupt):
+			sys.__excepthook__(exc_type, exc_value, exc_traceback)
+			return
+		logging.critical("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
+
+	sys.excepthook = _log_uncaught
+	logging.info("Logger initialized at %s", log_path)
 
 
 def main():
