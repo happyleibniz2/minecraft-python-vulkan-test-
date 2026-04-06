@@ -24,6 +24,7 @@ try:
 	from src.music import MusicPlayer
 
 	from src.renderer.shader import Shader
+	from src.renderer.opengl_renderer import OpenGLRenderer
 	from src.renderer.texture_manager import TextureManager
 	from src.world import World
 	from src.entity.player import Player
@@ -191,6 +192,7 @@ Display: {renderer}
 		# create world
 		self.world = World(self.shader, None, self.texture_manager, self.options)
 		logging.info("World initialized: chunks=%d", len(self.world.chunks))
+		self.opengl_renderer = OpenGLRenderer(self.options)
 
 		# player stuff
 		logging.info("Setting up player & camera")
@@ -396,8 +398,6 @@ Display: {renderer}
 		# Fallback to OpenGL path
 		gl.glEnable(gl.GL_DEPTH_TEST)
 		gl.glDisable(gl.GL_CULL_FACE)
-		if self.debug_render:
-			gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_LINE)
 		self.shader.use()
 		self.player.update_matrices()
 
@@ -409,11 +409,9 @@ Display: {renderer}
 			except Exception:
 				break
 
-		self.clear()
 		self.world.prepare_rendering()
-		self.world.draw()
-		if self.debug_render:
-			gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_FILL)
+		render_data = self.world.get_render_data()
+		self.opengl_renderer.draw(self.shader, self.world, render_data, self.clear, debug_wireframe=self.debug_render)
 
 		if self.show_f3:
 			self.f3.draw()

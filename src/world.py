@@ -592,20 +592,26 @@ class World:
 	draw_translucent = draw_translucent_fancy if options.FANCY_TRANSLUCENCY else draw_translucent_fast
 
 	def draw(self):
-		self.c = 0
-		daylight_multiplier = self.daylight / 1800
-		gl.glClearColor(
-			0.5 * (daylight_multiplier - 0.26),
-			0.8 * (daylight_multiplier - 0.26),
-			(daylight_multiplier - 0.26) * 1.36,
-			1.0,
-		)
-		gl.glUniform1f(self.shader_daylight_location, daylight_multiplier)
-
-		for render_chunk in self.visible_chunks:
+		render_data = self.get_render_data()
+		gl.glClearColor(*render_data["clear_color"])
+		gl.glUniform1f(self.shader_daylight_location, render_data["daylight_multiplier"])
+		for render_chunk in render_data["opaque_chunks"]:
 			render_chunk.draw(gl.GL_TRIANGLES)
-
 		self.draw_translucent()
+
+	def get_render_data(self):
+		daylight_multiplier = self.daylight / 1800
+		return {
+			"daylight_multiplier": daylight_multiplier,
+			"clear_color": (
+				0.5 * (daylight_multiplier - 0.26),
+				0.8 * (daylight_multiplier - 0.26),
+				(daylight_multiplier - 0.26) * 1.36,
+				1.0,
+			),
+			"opaque_chunks": tuple(self.visible_chunks),
+			"translucent_chunks": tuple(self.sorted_chunks),
+		}
 
 	def update_daylight(self):
 		if self.incrementer == -1:
