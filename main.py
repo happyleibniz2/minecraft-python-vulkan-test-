@@ -65,9 +65,12 @@ class Window:
 		self.height = height
 		self.title = title
 		self.mouse_captured = False
+		self.debug_render = ("--debug-render" in sys.argv) or (os.environ.get("PMCM_DEBUG_RENDER") == "1")
 
 		# Options
 		self.options = InternalConfig(options)
+		if self.debug_render:
+			logging.warning("Debug render mode enabled: wireframe on + chunk bbox diagnostics")
 
 		# Initialize GLFW
 		if not glfw.init():
@@ -357,11 +360,20 @@ Display: {gl.gl_info.get_renderer()}
 		self.world.tick(delta_time)
 
 		if self.world.time % 120 == 0:
+			visible_positions = [tuple(chunk.chunk_position) for chunk in self.world.visible_chunks]
+			total_visible_quads = sum(chunk.mesh_quad_count for chunk in self.world.visible_chunks)
+			bbox = "none"
+			if visible_positions:
+				xs = [p[0] for p in visible_positions]
+				zs = [p[2] for p in visible_positions]
+				bbox = f"x[{min(xs)},{max(xs)}] z[{min(zs)},{max(zs)}]"
 			logging.info(
-				"Tick diagnostics: time=%d chunks=%d visible=%d pending_updates=%d built_queue=%d player=%s",
+				"Tick diagnostics: time=%d chunks=%d visible=%d visible_quads=%d chunk_bbox=%s pending_updates=%d built_queue=%d player=%s",
 				self.world.time,
 				len(self.world.chunks),
 				len(self.world.visible_chunks),
+				total_visible_quads,
+				bbox,
 				self.world.pending_chunk_update_count,
 				len(self.world.chunk_building_queue),
 				tuple(round(v, 2) for v in self.player.position),
@@ -376,6 +388,8 @@ Display: {gl.gl_info.get_renderer()}
 		# Fallback to OpenGL path
 		gl.glEnable(gl.GL_DEPTH_TEST)
 		gl.glDisable(gl.GL_CULL_FACE)
+		if self.debug_render:
+			gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_LINE)
 		self.shader.use()
 		self.player.update_matrices()
 
@@ -390,6 +404,8 @@ Display: {gl.gl_info.get_renderer()}
 		self.clear()
 		self.world.prepare_rendering()
 		self.world.draw()
+		if self.debug_render:
+			gl.glPolygonMode(gl.GL_FRONT_AND_BACK, gl.GL_FILL)
 
 		if self.show_f3:
 			self.f3.draw()
