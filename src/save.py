@@ -30,6 +30,7 @@ class Save:
 			chunk_blocks = nbt.load(chunk_path)["Level"]["Blocks"]
 
 		except FileNotFoundError:
+			logging.debug("Chunk file not found: %s", chunk_path)
 			return
 
 		# create chunk and fill it with the blocks from our chunk file
@@ -78,6 +79,8 @@ class Save:
 
 	def load(self):
 		logging.info("Loading world")
+		attempted = 0
+		loaded = 0
 
 		# for x in range(-1, 15):
 		# 	for y in range(-15, 1):
@@ -85,7 +88,11 @@ class Save:
 
 		for x in range(-4, 4):
 			for y in range(-4, 4):
+				attempted += 1
+				before = len(self.world.chunks)
 				self.load_chunk((x, 0, y))
+				if len(self.world.chunks) > before:
+					loaded += 1
 
 		# for x in range(-1, 1):
 		#  	for y in range(-1, 1):
@@ -102,6 +109,7 @@ class Save:
 								chunk_position[2] * CHUNK_LENGTH + z,
 							)
 							self.world.increase_light(world_pos, 15, False)
+		logging.info("World load summary: attempted=%d loaded=%d missing=%d", attempted, loaded, attempted - loaded)
 
 	def save(self):
 		logging.info("Saving world")
