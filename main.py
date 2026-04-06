@@ -185,8 +185,6 @@ Display: {gl.gl_info.get_renderer()}
 		logging.info("Setting up player & camera")
 		self.player = Player(self.world, self.shader, self.width, self.height)
 		self.world.player = self.player
-		spawn_position = self.world.find_spawn_position(0, 0)
-		self.player.teleport(spawn_position)
 		logging.info("Player initialized at %s", tuple(round(v, 2) for v in self.player.position))
 
 		# schedule-like behaviour: we'll call these in the main loop
@@ -480,13 +478,8 @@ def init_logger():
 	logging.basicConfig(
 		level=logging.INFO,
 		format="[%(asctime)s] [%(processName)s/%(threadName)s/%(levelname)s] (%(module)s.py/%(funcName)s) %(message)s",
-		handlers=[logging.FileHandler(log_path), logging.StreamHandler(sys.__stdout__)],
-		force=True,
+		handlers=[logging.FileHandler(log_path), logging.StreamHandler(sys.stdout)],
 	)
-
-	# Sync raw console output (prints/tracebacks) into logs/<timestamp>.log too.
-	sys.stdout = _SyncedConsole(sys.__stdout__, log_path)
-	sys.stderr = _SyncedConsole(sys.__stderr__, log_path)
 
 	def _log_uncaught(exc_type, exc_value, exc_traceback):
 		if issubclass(exc_type, KeyboardInterrupt):
