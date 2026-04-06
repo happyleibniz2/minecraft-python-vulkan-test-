@@ -125,6 +125,8 @@ class Window:
 			logging.info("Setting up player & camera (Vulkan path)")
 			self.player = Player(self.world, self.shader, self.width, self.height)
 			self.world.player = self.player
+			spawn_position = self.world.find_spawn_position(0, 0)
+			self.player.teleport(spawn_position)
 
 			# schedule-like behaviour
 			self._scheduled = []
@@ -325,10 +327,10 @@ Display: {gl.gl_info.get_renderer()}
 
 	# Scheduler helpers
 	def schedule(self, func):
-		self._scheduled.append((func, 0))
+		self._scheduled.append({"func": func, "interval": 0.0, "elapsed": 0.0})
 
 	def schedule_interval(self, func, interval):
-		self._scheduled.append((func, interval))
+		self._scheduled.append({"func": func, "interval": float(interval), "elapsed": 0.0})
 
 	# Main per-tick update/draw kept similar to original
 	def update(self, delta_time):
@@ -412,12 +414,18 @@ class Game:
 			last = now
 
 			# call scheduled functions
-			for i, (func, interval) in enumerate(list(self.window._scheduled)):
+			for scheduled in list(self.window._scheduled):
+				func = scheduled["func"]
+				interval = scheduled["interval"]
 				try:
 					if interval == 0:
 						func(delta)
 					else:
-						func(delta)
+						scheduled["elapsed"] += delta
+						if scheduled["elapsed"] < interval:
+							continue
+						scheduled["elapsed"] -= interval
+						func(interval)
 				except TypeError:
 					try:
 						func()
