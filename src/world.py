@@ -476,6 +476,18 @@ class World:
 		if lz == 0:
 			try_update_chunk_at_position(glm.ivec3(cx, cy, cz - 1), (x, y, z - 1))
 
+	def find_spawn_position(self, x=0, z=0):
+		"""Find a sane player spawn above terrain near (x, z)."""
+		for y in range(CHUNK_HEIGHT - 3, 1, -1):
+			ground = self.get_block_number((x, y, z))
+			head = self.get_block_number((x, y + 1, z))
+			top = self.get_block_number((x, y + 2, z))
+			if ground and not head and not top:
+				return [x + 0.5, y + 1.0, z + 0.5]
+
+		# fallback keeps previous behavior if no clear spot is found
+		return [x + 0.5, 80.0, z + 0.5]
+
 	def try_set_block(self, position, number, collider):
 		# if we're trying to remove a block, whatever let it go through
 
@@ -514,6 +526,26 @@ class World:
 		self.visible_chunks = [
 			self.chunks[chunk_position] for chunk_position in self.chunks if self.can_render_chunk(chunk_position)
 		]
+		if self.chunks and not self.visible_chunks and self.player:
+			player_chunk = self.get_chunk_position(self.player.position)
+			self.visible_chunks = [
+				self.chunks[chunk_position]
+				for chunk_position in self.chunks
+				if math.dist(player_chunk, chunk_position) <= self.options.RENDER_DISTANCE
+			]
+			logging.warning(
+				"Frustum culling produced 0 chunks; using distance-only fallback. fallback_visible=%d",
+				len(self.visible_chunks),
+			)
+
+		if self.chunks and not self.visible_chunks and self.time % 120 == 0:
+			player_chunk = self.get_chunk_position(self.player.position) if self.player else None
+			logging.warning(
+				"No chunks visible after culling: total_chunks=%d player_chunk=%s render_distance=%s",
+				len(self.chunks),
+				player_chunk,
+				self.options.RENDER_DISTANCE,
+			)
 		self.sort_chunks()
 
 	def sort_chunks(self):
