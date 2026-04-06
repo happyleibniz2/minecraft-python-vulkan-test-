@@ -470,13 +470,8 @@ def init_logger():
 	logging.basicConfig(
 		level=logging.INFO,
 		format="[%(asctime)s] [%(processName)s/%(threadName)s/%(levelname)s] (%(module)s.py/%(funcName)s) %(message)s",
-		handlers=[logging.FileHandler(log_path), logging.StreamHandler(sys.__stdout__)],
-		force=True,
+		handlers=[logging.FileHandler(log_path), logging.StreamHandler(sys.stdout)],
 	)
-
-	# Sync raw console output (prints/tracebacks) into logs/<timestamp>.log too.
-	sys.stdout = _SyncedConsole(sys.__stdout__, log_path)
-	sys.stderr = _SyncedConsole(sys.__stderr__, log_path)
 
 	def _log_uncaught(exc_type, exc_value, exc_traceback):
 		if issubclass(exc_type, KeyboardInterrupt):
