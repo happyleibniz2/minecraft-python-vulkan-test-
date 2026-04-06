@@ -309,6 +309,20 @@ Display: {gl.gl_info.get_renderer()}
 		if hasattr(self, "on_close"):
 			self.on_close()
 
+	def update_f3(self, delta_time):
+		"""Safe F3 updater for debug text."""
+		if not hasattr(self, "f3"):
+			return
+
+		try:
+			self.f3.text = (
+				f"dt={delta_time:.4f} "
+				f"pos={tuple(round(v, 2) for v in self.player.position)} "
+				f"chunks={len(self.world.chunks)} visible={len(self.world.visible_chunks)}"
+			)
+		except Exception:
+			pass
+
 	# Scheduler helpers
 	def schedule(self, func):
 		self._scheduled.append((func, 0))
@@ -438,6 +452,20 @@ def init_logger():
 
 	with open(log_path, "x") as file:
 		file.write("[LOGS]\n")
+
+	class _SyncedConsole:
+		def __init__(self, original_stream, mirror_path):
+			self.original_stream = original_stream
+			self.mirror_path = mirror_path
+
+		def write(self, message):
+			self.original_stream.write(message)
+			self.original_stream.flush()
+			with open(self.mirror_path, "a", encoding="utf-8", errors="replace") as mirror:
+				mirror.write(message)
+
+		def flush(self):
+			self.original_stream.flush()
 
 	logging.basicConfig(
 		level=logging.INFO,
