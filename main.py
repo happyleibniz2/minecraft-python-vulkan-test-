@@ -6,24 +6,33 @@ import time
 import os
 from collections import deque
 
-import glfw
 import sys
+try:
+	import glfw
+	GLFW_IMPORT_ERROR = None
+except Exception as exc:
+	glfw = None
+	GLFW_IMPORT_ERROR = exc
 
-import pyglet.gl as gl
-from src.renderer.vulkan_renderer import VulkanRenderer
-from src.renderer.vulkan_shader import VulkanShader
-from src.renderer.vulkan_texture import VulkanTextureManager
+STARTUP_IMPORT_ERROR = None
+try:
+	import pyglet.gl as gl
+	from src.renderer.vulkan_renderer import VulkanRenderer
+	from src.renderer.vulkan_shader import VulkanShader
+	from src.renderer.vulkan_texture import VulkanTextureManager
 
-from src.music import MusicPlayer
+	from src.music import MusicPlayer
 
-from src.renderer.shader import Shader
-from src.renderer.texture_manager import TextureManager
-from src.world import World
-from src.entity.player import Player
-from src.controllers.joystick import JoystickController
-from src.controllers.keyboard_mouse import KeyboardMouseController
+	from src.renderer.shader import Shader
+	from src.renderer.texture_manager import TextureManager
+	from src.world import World
+	from src.entity.player import Player
+	from src.controllers.joystick import JoystickController
+	from src.controllers.keyboard_mouse import KeyboardMouseController
 
-import src.options as options
+	import src.options as options
+except Exception as exc:
+	STARTUP_IMPORT_ERROR = exc
 
 
 class InternalConfig:
@@ -132,6 +141,12 @@ class Window:
 				except Exception:
 					pass
 
+			logging.info(
+				"Vulkan init summary: chunks=%d player_pos=%s",
+				len(self.world.chunks),
+				tuple(round(v, 2) for v in self.player.position),
+			)
+
 			# skip GL-specific initialization below
 			return
 
@@ -162,11 +177,13 @@ Display: {gl.gl_info.get_renderer()}
 
 		# create world
 		self.world = World(self.shader, None, self.texture_manager, self.options)
+		logging.info("World initialized: chunks=%d", len(self.world.chunks))
 
 		# player stuff
 		logging.info("Setting up player & camera")
 		self.player = Player(self.world, self.shader, self.width, self.height)
 		self.world.player = self.player
+		logging.info("Player initialized at %s", tuple(round(v, 2) for v in self.player.position))
 
 		# schedule-like behaviour: we'll call these in the main loop
 		self._scheduled = []
@@ -292,6 +309,20 @@ Display: {gl.gl_info.get_renderer()}
 		if hasattr(self, "on_close"):
 			self.on_close()
 
+	def update_f3(self, delta_time):
+		"""Safe F3 updater for debug text."""
+		if not hasattr(self, "f3"):
+			return
+
+		try:
+			self.f3.text = (
+				f"dt={delta_time:.4f} "
+				f"pos={tuple(round(v, 2) for v in self.player.position)} "
+				f"chunks={len(self.world.chunks)} visible={len(self.world.visible_chunks)}"
+			)
+		except Exception:
+			pass
+
 	# Scheduler helpers
 	def schedule(self, func):
 		self._scheduled.append((func, 0))
@@ -320,6 +351,17 @@ Display: {gl.gl_info.get_renderer()}
 		self.player.update(delta_time)
 
 		self.world.tick(delta_time)
+
+		if self.world.time % 120 == 0:
+			logging.info(
+				"Tick diagnostics: time=%d chunks=%d visible=%d pending_updates=%d built_queue=%d player=%s",
+				self.world.time,
+				len(self.world.chunks),
+				len(self.world.visible_chunks),
+				self.world.pending_chunk_update_count,
+				len(self.world.chunk_building_queue),
+				tuple(round(v, 2) for v in self.player.position),
+			)
 
 	def on_draw(self):
 		# If Vulkan renderer is available, delegate drawing to it.
@@ -380,10 +422,16 @@ class Game:
 					try:
 						func()
 					except Exception:
-						pass
+						logging.exception("Scheduled function %s failed (no-arg fallback)", getattr(func, "__name__", repr(func)))
+				except Exception:
+					logging.exception("Scheduled function %s failed", getattr(func, "__name__", repr(func)))
 
 			# per-frame draw
-			self.window.on_draw()
+			try:
+				self.window.on_draw()
+			except Exception:
+				logging.exception("Draw call failed")
+				raise
 
 			# With Vulkan (NO_API) we should not call swap_buffers; the renderer presents.
 			if getattr(self.window, "vulkan", None) is None:
@@ -395,7 +443,7 @@ class Game:
 
 
 def init_logger():
-	log_folder = "logs/"
+	log_folder = "logs"
 	log_filename = f"{time.time()}.log"
 	log_path = os.path.join(log_folder, log_filename)
 
@@ -405,15 +453,54 @@ def init_logger():
 	with open(log_path, "x") as file:
 		file.write("[LOGS]\n")
 
+	class _SyncedConsole:
+		def __init__(self, original_stream, mirror_path):
+			self.original_stream = original_stream
+			self.mirror_path = mirror_path
+
+		def write(self, message):
+			self.original_stream.write(message)
+			self.original_stream.flush()
+			with open(self.mirror_path, "a", encoding="utf-8", errors="replace") as mirror:
+				mirror.write(message)
+
+		def flush(self):
+			self.original_stream.flush()
+
 	logging.basicConfig(
 		level=logging.INFO,
-		filename=log_path,
 		format="[%(asctime)s] [%(processName)s/%(threadName)s/%(levelname)s] (%(module)s.py/%(funcName)s) %(message)s",
+		handlers=[logging.FileHandler(log_path), logging.StreamHandler(sys.__stdout__)],
+		force=True,
 	)
+
+	# Sync raw console output (prints/tracebacks) into logs/<timestamp>.log too.
+	sys.stdout = _SyncedConsole(sys.__stdout__, log_path)
+	sys.stderr = _SyncedConsole(sys.__stderr__, log_path)
+
+	def _log_uncaught(exc_type, exc_value, exc_traceback):
+		if issubclass(exc_type, KeyboardInterrupt):
+			sys.__excepthook__(exc_type, exc_value, exc_traceback)
+			return
+		logging.critical("Uncaught exception", exc_info=(exc_type, exc_value, exc_traceback))
+
+	sys.excepthook = _log_uncaught
+	logging.info("Logger initialized at %s", log_path)
 
 
 def main():
 	init_logger()
+
+	if STARTUP_IMPORT_ERROR is not None:
+		logging.critical("Startup imports failed: %s", STARTUP_IMPORT_ERROR)
+		logging.critical("Common fix: install runtime dependencies from pyproject/poetry (e.g. glfw, PyOpenGL).")
+		return
+
+	if glfw is None:
+		logging.critical("GLFW import failed during startup: %s", GLFW_IMPORT_ERROR)
+		logging.critical("Install glfw with: pip install glfw")
+		return
+
 	game = Game()
 	game.run()
 
