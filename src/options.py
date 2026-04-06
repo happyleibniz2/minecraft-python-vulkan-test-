@@ -1,5 +1,5 @@
 # FAST = 0; FANCY = 1
-import pyglet.gl as gl
+from OpenGL import GL as gl
 
 # Render Distance (in chunks)
 RENDER_DISTANCE = 4

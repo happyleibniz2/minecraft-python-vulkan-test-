@@ -37,7 +37,8 @@ void main(void) {
 		clamp(blocklightMultiplier * 1.5, skylightMultiplier * u_Daylight, 1.0), 
 		clamp(blocklightMultiplier * 1.25, skylightMultiplier * u_Daylight, 1.0), 
 		clamp(skylightMultiplier * (2.0 - pow(u_Daylight, 2)), blocklightMultiplier, 1.0)
-	) * a_Shading; 
+	) * a_Shading;
+	v_Light = max(v_Light, vec3(0.22));
 
 	gl_Position = u_MVPMatrix * vec4(v_Position, 1.0);
 }
