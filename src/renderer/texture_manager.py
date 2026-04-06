@@ -2,7 +2,7 @@ import pyglet
 import logging
 import ctypes
 
-import pyglet.gl as gl
+from OpenGL import GL as gl
 
 import src.options as options
 

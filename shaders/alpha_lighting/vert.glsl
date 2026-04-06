@@ -35,7 +35,7 @@ void main(void) {
 
 
 
-	v_Light = max(blocklightMultiplier, skylightMultiplier) * a_Shading; 
+	v_Light = max(max(blocklightMultiplier, skylightMultiplier) * a_Shading, 0.22); 
 
 	gl_Position = u_MVPMatrix * vec4(v_Position, 1.0);
 }

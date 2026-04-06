@@ -1,7 +1,7 @@
 import ctypes
 from collections import deque
 
-import pyglet.gl as gl
+from OpenGL import GL as gl
 
 from src.chunk.subchunk import SUBCHUNK_WIDTH, SUBCHUNK_HEIGHT, SUBCHUNK_LENGTH, Subchunk
 import src.options as options
@@ -9,6 +9,7 @@ import src.options as options
 CHUNK_WIDTH = 16
 CHUNK_HEIGHT = 128
 CHUNK_LENGTH = 16
+MAX_CHUNK_VERTEX_FLOATS = CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_LENGTH * 6 * 4 * 7
 
 
 class Chunk:
@@ -47,56 +48,55 @@ class Chunk:
 
 		# create VAO and VBO's
 
-		self.vao = gl.GLuint(0)
-		gl.glGenVertexArrays(1, self.vao)
+		self.vao = gl.glGenVertexArrays(1)
 		gl.glBindVertexArray(self.vao)
 
-		self.vbo = gl.GLuint(0)
-		gl.glGenBuffers(1, self.vbo)
+		self.vbo = gl.glGenBuffers(1)
 		gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self.vbo)
 		gl.glBufferData(
 			gl.GL_ARRAY_BUFFER,
-			ctypes.sizeof(gl.GLfloat * CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_LENGTH * 7),
+			ctypes.sizeof(gl.GLfloat * MAX_CHUNK_VERTEX_FLOATS),
 			None,
 			gl.GL_DYNAMIC_DRAW,
 		)
 
-		gl.glVertexAttribPointer(0, 3, gl.GL_FLOAT, gl.GL_FALSE, 7 * ctypes.sizeof(gl.GLfloat), 0)
+		gl.glVertexAttribPointer(0, 3, gl.GL_FLOAT, gl.GL_FALSE, 7 * ctypes.sizeof(gl.GLfloat), ctypes.c_void_p(0))
 		gl.glEnableVertexAttribArray(0)
 		gl.glVertexAttribPointer(
-			1, 1, gl.GL_FLOAT, gl.GL_FALSE, 7 * ctypes.sizeof(gl.GLfloat), 3 * ctypes.sizeof(gl.GLfloat)
+			1, 1, gl.GL_FLOAT, gl.GL_FALSE, 7 * ctypes.sizeof(gl.GLfloat), ctypes.c_void_p(3 * ctypes.sizeof(gl.GLfloat))
 		)
 		gl.glEnableVertexAttribArray(1)
 		gl.glVertexAttribPointer(
-			2, 1, gl.GL_FLOAT, gl.GL_FALSE, 7 * ctypes.sizeof(gl.GLfloat), 4 * ctypes.sizeof(gl.GLfloat)
+			2, 1, gl.GL_FLOAT, gl.GL_FALSE, 7 * ctypes.sizeof(gl.GLfloat), ctypes.c_void_p(4 * ctypes.sizeof(gl.GLfloat))
 		)
 		gl.glEnableVertexAttribArray(2)
 		gl.glVertexAttribPointer(
-			3, 1, gl.GL_FLOAT, gl.GL_FALSE, 7 * ctypes.sizeof(gl.GLfloat), 5 * ctypes.sizeof(gl.GLfloat)
+			3, 1, gl.GL_FLOAT, gl.GL_FALSE, 7 * ctypes.sizeof(gl.GLfloat), ctypes.c_void_p(5 * ctypes.sizeof(gl.GLfloat))
 		)
 		gl.glEnableVertexAttribArray(3)
 		gl.glVertexAttribPointer(
-			4, 1, gl.GL_FLOAT, gl.GL_FALSE, 7 * ctypes.sizeof(gl.GLfloat), 6 * ctypes.sizeof(gl.GLfloat)
+			4, 1, gl.GL_FLOAT, gl.GL_FALSE, 7 * ctypes.sizeof(gl.GLfloat), ctypes.c_void_p(6 * ctypes.sizeof(gl.GLfloat))
 		)
 		gl.glEnableVertexAttribArray(4)
 
 		gl.glBindBuffer(gl.GL_ELEMENT_ARRAY_BUFFER, world.ibo)
 
 		if self.world.options.INDIRECT_RENDERING:
-			self.indirect_command_buffer = gl.GLuint(0)
-			gl.glGenBuffers(1, self.indirect_command_buffer)
+			self.indirect_command_buffer = gl.glGenBuffers(1)
 			gl.glBindBuffer(gl.GL_DRAW_INDIRECT_BUFFER, self.indirect_command_buffer)
 			gl.glBufferData(gl.GL_DRAW_INDIRECT_BUFFER, ctypes.sizeof(gl.GLuint * 10), None, gl.GL_DYNAMIC_DRAW)
 
 		self.draw_commands = []
 
-		self.occlusion_query = gl.GLuint(0)
-		gl.glGenQueries(1, self.occlusion_query)
+		self.occlusion_query = gl.glGenQueries(1)
 
 	def __del__(self):
-		gl.glDeleteQueries(1, self.occlusion_query)
-		gl.glDeleteBuffers(1, self.vbo)
-		gl.glDeleteVertexArrays(1, self.vao)
+		try:
+			gl.glDeleteQueries(1, [self.occlusion_query])
+			gl.glDeleteBuffers(1, [self.vbo])
+			gl.glDeleteVertexArrays(1, [self.vao])
+		except Exception:
+			pass
 
 	def get_block_light(self, position):
 		x, y, z = position
@@ -221,7 +221,7 @@ class Chunk:
 		gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self.vbo)
 		gl.glBufferData(
 			gl.GL_ARRAY_BUFFER,  # Orphaning
-			ctypes.sizeof(gl.GLfloat * CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_LENGTH * 7),
+			ctypes.sizeof(gl.GLfloat * MAX_CHUNK_VERTEX_FLOATS),
 			None,
 			gl.GL_DYNAMIC_DRAW,
 		)

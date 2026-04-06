@@ -1,5 +1,5 @@
 import ctypes
-import pyglet.gl as gl
+from OpenGL import GL as gl
 
 import glm
 
