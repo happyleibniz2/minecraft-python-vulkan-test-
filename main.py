@@ -411,7 +411,8 @@ Display: {renderer}
 
 		self.world.prepare_rendering()
 		render_data = self.world.get_render_data()
-		self.opengl_renderer.draw(self.shader, self.world, render_data, self.clear, debug_wireframe=self.debug_render)
+		if getattr(self, "opengl_renderer", None):
+			self.opengl_renderer.draw(self.shader, self.world, render_data, self.clear, debug_wireframe=self.debug_render)
 
 		if self.show_f3:
 			self.f3.draw()

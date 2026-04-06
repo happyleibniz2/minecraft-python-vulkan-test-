@@ -196,6 +196,8 @@ class Chunk:
 
 	def update_mesh(self):
 		# combine all the small subchunk meshes into one big chunk mesh
+		self.mesh = []
+		self.translucent_mesh = []
 
 		for subchunk in self.subchunks.values():
 			self.mesh += subchunk.mesh
@@ -335,9 +337,17 @@ class Chunk:
 		)
 		gl.glEndConditionalRender()
 
-	draw_normal = draw_indirect if options.INDIRECT_RENDERING else draw_direct
-	draw_advanced = draw_indirect_advanced if options.INDIRECT_RENDERING else draw_direct_advanced
-	draw = draw_advanced if options.ADVANCED_OPENGL else draw_normal
+	def draw(self, mode):
+		if options.ADVANCED_OPENGL:
+			if options.INDIRECT_RENDERING:
+				self.draw_indirect_advanced(mode)
+			else:
+				self.draw_direct_advanced(mode)
+		else:
+			if options.INDIRECT_RENDERING:
+				self.draw_indirect(mode)
+			else:
+				self.draw_direct(mode)
 
 	def draw_translucent_direct(self, mode):
 		if not self.mesh_quad_count:
@@ -369,4 +379,8 @@ class Chunk:
 			),  # offset pointer to the indirect command buffer pointing to the translucent mesh commands
 		)
 
-	draw_translucent = draw_translucent_indirect if options.INDIRECT_RENDERING else draw_translucent_direct
+	def draw_translucent(self, mode):
+		if options.INDIRECT_RENDERING:
+			self.draw_translucent_indirect(mode)
+		else:
+			self.draw_translucent_direct(mode)
