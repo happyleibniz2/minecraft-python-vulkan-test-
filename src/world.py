@@ -635,8 +635,37 @@ class World:
 			pending_chunk.update_mesh()
 
 	def process_chunk_updates(self):
-		for chunk in self.visible_chunks:
-			chunk.process_chunk_updates()
+		budget = max(int(self.options.CHUNK_UPDATES), 0)
+		if budget == 0:
+			return
+
+		# Prioritize visible chunks, then process the rest to avoid starvation.
+		candidates = list(self.visible_chunks)
+		candidate_set = set(candidates)
+		for chunk in self.chunks.values():
+			if chunk not in candidate_set:
+				candidates.append(chunk)
+
+		while budget > 0:
+			progressed = False
+			for chunk in candidates:
+				if not chunk.chunk_update_queue:
+					continue
+
+				subchunk = chunk.chunk_update_queue.popleft()
+				subchunk.update_mesh()
+				self.chunk_update_counter += 1
+				progressed = True
+				budget -= 1
+
+				if not chunk.chunk_update_queue and chunk not in self.chunk_building_queue:
+					self.chunk_building_queue.append(chunk)
+
+				if budget <= 0:
+					break
+
+			if not progressed:
+				break
 
 	def tick(self, delta_time):
 		self.chunk_update_counter = 0

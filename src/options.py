@@ -19,7 +19,8 @@ ADVANCED_OPENGL = False  # Not recommended unless using NVIDIA cards.
 # Might cause more slowdowns that speedups.
 # Do not expect any concrete framerate improvement.
 # Max number of chunk updates per chunk every tick
-CHUNK_UPDATES = 4
+# Global subchunk mesh updates per tick (higher = faster world build, higher CPU cost)
+CHUNK_UPDATES = 256
 
 # Vertical Sync
 VSYNC = False
