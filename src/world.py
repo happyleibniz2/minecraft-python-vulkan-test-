@@ -3,7 +3,6 @@ import math
 import logging
 import glm
 
-from functools import cmp_to_key
 from collections import deque
 
 from OpenGL import GL as gl
@@ -162,6 +161,14 @@ class World:
 		self.chunk_update_counter = 0
 
 	def __del__(self):
+		self.destroy()
+
+	def destroy(self):
+		for chunk in getattr(self, "chunks", {}).values():
+			try:
+				chunk.destroy()
+			except Exception:
+				pass
 		try:
 			if hasattr(self, "ibo") and self.ibo:
 				gl.glDeleteBuffers(1, [self.ibo])
@@ -552,13 +559,7 @@ class World:
 			return
 
 		player_chunk_pos = self.get_chunk_position(self.player.position)
-		self.visible_chunks.sort(
-			key=cmp_to_key(
-				lambda a, b: int(
-					math.dist(player_chunk_pos, a.chunk_position) - math.dist(player_chunk_pos, b.chunk_position)
-				)
-			)
-		)
+		self.visible_chunks.sort(key=lambda chunk: math.dist(player_chunk_pos, chunk.chunk_position))
 		self.sorted_chunks = tuple(reversed(self.visible_chunks))
 
 	def draw_translucent_fast(self):

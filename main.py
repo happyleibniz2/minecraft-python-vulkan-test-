@@ -326,6 +326,13 @@ Display: {renderer}
 		if hasattr(self, "on_close"):
 			self.on_close()
 
+	def shutdown(self):
+		try:
+			if getattr(self, "world", None):
+				self.world.destroy()
+		except Exception:
+			logging.exception("Window shutdown cleanup failed")
+
 	def update_f3(self, delta_time):
 		"""Safe F3 updater for debug text."""
 		if not hasattr(self, "f3"):
@@ -473,6 +480,8 @@ class Game:
 			glfw.poll_events()
 
 		# cleanup
+		if getattr(self, "window", None):
+			self.window.shutdown()
 		glfw.terminate()
 
 

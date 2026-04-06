@@ -4,7 +4,6 @@ from collections import deque
 from OpenGL import GL as gl
 
 from src.chunk.subchunk import SUBCHUNK_WIDTH, SUBCHUNK_HEIGHT, SUBCHUNK_LENGTH, Subchunk
-import src.options as options
 
 CHUNK_WIDTH = 16
 CHUNK_HEIGHT = 128
@@ -91,12 +90,7 @@ class Chunk:
 		self.occlusion_query = gl.glGenQueries(1)
 
 	def __del__(self):
-		try:
-			gl.glDeleteQueries(1, [self.occlusion_query])
-			gl.glDeleteBuffers(1, [self.vbo])
-			gl.glDeleteVertexArrays(1, [self.vao])
-		except Exception:
-			pass
+		self.destroy()
 
 	def get_block_light(self, position):
 		x, y, z = position
@@ -200,8 +194,8 @@ class Chunk:
 		self.translucent_mesh = []
 
 		for subchunk in self.subchunks.values():
-			self.mesh += subchunk.mesh
-			self.translucent_mesh += subchunk.translucent_mesh
+			self.mesh.extend(subchunk.mesh)
+			self.translucent_mesh.extend(subchunk.translucent_mesh)
 
 		# send the full mesh data to the GPU and free the memory used client-side (we don't need it anymore)
 		# don't forget to save the length of 'self.mesh_indices' before freeing
@@ -215,15 +209,16 @@ class Chunk:
 		self.translucent_mesh = []
 
 	def send_mesh_data_to_gpu(self):  # pass mesh data to gpu
-		if not self.mesh_quad_count:
+		if not self.mesh_quad_count and not self.translucent_quad_count:
 			return
 
 		gl.glBindVertexArray(self.vao)
+		total_floats = max(len(self.mesh) + len(self.translucent_mesh), 1)
 
 		gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self.vbo)
 		gl.glBufferData(
 			gl.GL_ARRAY_BUFFER,  # Orphaning
-			ctypes.sizeof(gl.GLfloat * MAX_CHUNK_VERTEX_FLOATS),
+			ctypes.sizeof(gl.GLfloat * total_floats),
 			None,
 			gl.GL_DYNAMIC_DRAW,
 		)
@@ -338,13 +333,13 @@ class Chunk:
 		gl.glEndConditionalRender()
 
 	def draw(self, mode):
-		if options.ADVANCED_OPENGL:
-			if options.INDIRECT_RENDERING:
+		if self.world.options.ADVANCED_OPENGL:
+			if self.world.options.INDIRECT_RENDERING:
 				self.draw_indirect_advanced(mode)
 			else:
 				self.draw_direct_advanced(mode)
 		else:
-			if options.INDIRECT_RENDERING:
+			if self.world.options.INDIRECT_RENDERING:
 				self.draw_indirect(mode)
 			else:
 				self.draw_direct(mode)
@@ -380,7 +375,17 @@ class Chunk:
 		)
 
 	def draw_translucent(self, mode):
-		if options.INDIRECT_RENDERING:
+		if self.world.options.INDIRECT_RENDERING:
 			self.draw_translucent_indirect(mode)
 		else:
 			self.draw_translucent_direct(mode)
+
+	def destroy(self):
+		try:
+			gl.glDeleteQueries(1, [self.occlusion_query])
+			gl.glDeleteBuffers(1, [self.vbo])
+			gl.glDeleteVertexArrays(1, [self.vao])
+			if getattr(self, "indirect_command_buffer", None):
+				gl.glDeleteBuffers(1, [self.indirect_command_buffer])
+		except Exception:
+			pass
