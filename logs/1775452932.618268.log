@@ -1,0 +1,8 @@
+[LOGS]
+[2026-04-05 22:22:12,684] [MainProcess/MainThread/ERROR] (vulkan_renderer.py/_create_surface) Failed to create Vulkan surface: create_window_surface() missing 1 required positional argument: 'surface'
+[2026-04-05 22:22:12,766] [MainProcess/MainThread/INFO] (main.py/__init__) System Info: Python: CPython 3.12.10
+System: AMD64 Windows 11 10.0.22631
+CPU: AMD64 Family 25 Model 68 Stepping 1, AuthenticAMD
+Display: Unknown Renderer 
+Unknown Version
+[2026-04-05 22:22:12,766] [MainProcess/MainThread/INFO] (main.py/__init__) Compiling Shaders
