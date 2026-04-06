@@ -6,24 +6,33 @@ import time
 import os
 from collections import deque
 
-import glfw
 import sys
+try:
+	import glfw
+	GLFW_IMPORT_ERROR = None
+except Exception as exc:
+	glfw = None
+	GLFW_IMPORT_ERROR = exc
 
-import pyglet.gl as gl
-from src.renderer.vulkan_renderer import VulkanRenderer
-from src.renderer.vulkan_shader import VulkanShader
-from src.renderer.vulkan_texture import VulkanTextureManager
+STARTUP_IMPORT_ERROR = None
+try:
+	import pyglet.gl as gl
+	from src.renderer.vulkan_renderer import VulkanRenderer
+	from src.renderer.vulkan_shader import VulkanShader
+	from src.renderer.vulkan_texture import VulkanTextureManager
 
-from src.music import MusicPlayer
+	from src.music import MusicPlayer
 
-from src.renderer.shader import Shader
-from src.renderer.texture_manager import TextureManager
-from src.world import World
-from src.entity.player import Player
-from src.controllers.joystick import JoystickController
-from src.controllers.keyboard_mouse import KeyboardMouseController
+	from src.renderer.shader import Shader
+	from src.renderer.texture_manager import TextureManager
+	from src.world import World
+	from src.entity.player import Player
+	from src.controllers.joystick import JoystickController
+	from src.controllers.keyboard_mouse import KeyboardMouseController
 
-import src.options as options
+	import src.options as options
+except Exception as exc:
+	STARTUP_IMPORT_ERROR = exc
 
 
 class InternalConfig:
@@ -432,8 +441,8 @@ def init_logger():
 
 	logging.basicConfig(
 		level=logging.INFO,
-		filename=log_path,
 		format="[%(asctime)s] [%(processName)s/%(threadName)s/%(levelname)s] (%(module)s.py/%(funcName)s) %(message)s",
+		handlers=[logging.FileHandler(log_path), logging.StreamHandler(sys.stdout)],
 	)
 
 	def _log_uncaught(exc_type, exc_value, exc_traceback):
@@ -448,6 +457,17 @@ def init_logger():
 
 def main():
 	init_logger()
+
+	if STARTUP_IMPORT_ERROR is not None:
+		logging.critical("Startup imports failed: %s", STARTUP_IMPORT_ERROR)
+		logging.critical("Common fix: install runtime dependencies from pyproject/poetry (e.g. glfw, PyOpenGL).")
+		return
+
+	if glfw is None:
+		logging.critical("GLFW import failed during startup: %s", GLFW_IMPORT_ERROR)
+		logging.critical("Install glfw with: pip install glfw")
+		return
+
 	game = Game()
 	game.run()
 
