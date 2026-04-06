@@ -9,6 +9,7 @@ import src.options as options
 CHUNK_WIDTH = 16
 CHUNK_HEIGHT = 128
 CHUNK_LENGTH = 16
+MAX_CHUNK_VERTEX_FLOATS = CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_LENGTH * 6 * 4 * 7
 
 
 class Chunk:
@@ -56,27 +57,27 @@ class Chunk:
 		gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self.vbo)
 		gl.glBufferData(
 			gl.GL_ARRAY_BUFFER,
-			ctypes.sizeof(gl.GLfloat * CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_LENGTH * 7),
+			ctypes.sizeof(gl.GLfloat * MAX_CHUNK_VERTEX_FLOATS),
 			None,
 			gl.GL_DYNAMIC_DRAW,
 		)
 
-		gl.glVertexAttribPointer(0, 3, gl.GL_FLOAT, gl.GL_FALSE, 7 * ctypes.sizeof(gl.GLfloat), 0)
+		gl.glVertexAttribPointer(0, 3, gl.GL_FLOAT, gl.GL_FALSE, 7 * ctypes.sizeof(gl.GLfloat), ctypes.c_void_p(0))
 		gl.glEnableVertexAttribArray(0)
 		gl.glVertexAttribPointer(
-			1, 1, gl.GL_FLOAT, gl.GL_FALSE, 7 * ctypes.sizeof(gl.GLfloat), 3 * ctypes.sizeof(gl.GLfloat)
+			1, 1, gl.GL_FLOAT, gl.GL_FALSE, 7 * ctypes.sizeof(gl.GLfloat), ctypes.c_void_p(3 * ctypes.sizeof(gl.GLfloat))
 		)
 		gl.glEnableVertexAttribArray(1)
 		gl.glVertexAttribPointer(
-			2, 1, gl.GL_FLOAT, gl.GL_FALSE, 7 * ctypes.sizeof(gl.GLfloat), 4 * ctypes.sizeof(gl.GLfloat)
+			2, 1, gl.GL_FLOAT, gl.GL_FALSE, 7 * ctypes.sizeof(gl.GLfloat), ctypes.c_void_p(4 * ctypes.sizeof(gl.GLfloat))
 		)
 		gl.glEnableVertexAttribArray(2)
 		gl.glVertexAttribPointer(
-			3, 1, gl.GL_FLOAT, gl.GL_FALSE, 7 * ctypes.sizeof(gl.GLfloat), 5 * ctypes.sizeof(gl.GLfloat)
+			3, 1, gl.GL_FLOAT, gl.GL_FALSE, 7 * ctypes.sizeof(gl.GLfloat), ctypes.c_void_p(5 * ctypes.sizeof(gl.GLfloat))
 		)
 		gl.glEnableVertexAttribArray(3)
 		gl.glVertexAttribPointer(
-			4, 1, gl.GL_FLOAT, gl.GL_FALSE, 7 * ctypes.sizeof(gl.GLfloat), 6 * ctypes.sizeof(gl.GLfloat)
+			4, 1, gl.GL_FLOAT, gl.GL_FALSE, 7 * ctypes.sizeof(gl.GLfloat), ctypes.c_void_p(6 * ctypes.sizeof(gl.GLfloat))
 		)
 		gl.glEnableVertexAttribArray(4)
 
@@ -221,7 +222,7 @@ class Chunk:
 		gl.glBindBuffer(gl.GL_ARRAY_BUFFER, self.vbo)
 		gl.glBufferData(
 			gl.GL_ARRAY_BUFFER,  # Orphaning
-			ctypes.sizeof(gl.GLfloat * CHUNK_WIDTH * CHUNK_HEIGHT * CHUNK_LENGTH * 7),
+			ctypes.sizeof(gl.GLfloat * MAX_CHUNK_VERTEX_FLOATS),
 			None,
 			gl.GL_DYNAMIC_DRAW,
 		)
