@@ -1,0 +1,32 @@
+[LOGS]
+[2026-04-10 23:11:41,905] [MainProcess/MainThread/INFO] (main.py/init_logger) Logger initialized at logs\1775887901.9056835.log
+[2026-04-10 23:11:42,119] [MainProcess/MainThread/INFO] (main.py/__init__) System Info: Python: CPython 3.12.10
+System: AMD64 Windows 11 10.0.22631
+CPU: AMD64 Family 25 Model 68 Stepping 1, AuthenticAMD
+Display: AMD Radeon(TM) Graphics 
+3.3.0 Core Profile Context 25.10.30.02.250923
+[2026-04-10 23:11:42,119] [MainProcess/MainThread/INFO] (main.py/__init__) Compiling Shaders
+[2026-04-10 23:11:42,306] [MainProcess/MainThread/INFO] (main.py/__init__) Creating Texture Array
+[2026-04-10 23:11:42,347] [MainProcess/MainThread/INFO] (world.py/__init__) Loading block models
+[2026-04-10 23:11:43,144] [MainProcess/MainThread/INFO] (save.py/load) Loading world
+[2026-04-10 23:11:48,266] [MainProcess/MainThread/INFO] (save.py/load) World load summary: attempted=64 loaded=64 missing=0
+[2026-04-10 23:11:48,266] [MainProcess/MainThread/INFO] (world.py/__init__) Lighting chunks
+[2026-04-10 23:12:03,669] [MainProcess/MainThread/INFO] (world.py/__init__) Generating chunks
+[2026-04-10 23:12:03,684] [MainProcess/MainThread/INFO] (main.py/__init__) World initialized: chunks=64
+[2026-04-10 23:12:03,684] [MainProcess/MainThread/INFO] (main.py/__init__) Setting up player & camera
+[2026-04-10 23:12:03,684] [MainProcess/MainThread/INFO] (main.py/__init__) Player initialized at (0.5, 70.0, 0.5)
+[2026-04-10 23:12:03,742] [MainProcess/MainThread/INFO] (main.py/__init__) Loading audio
+[2026-04-10 23:12:18,934] [MainProcess/MainThread/INFO] (main.py/update) Tick diagnostics: time=120 chunks=64 visible=25 visible_quads=0 chunk_bbox=x[-1,3] z[-3,3] pending_updates=2310 built_queue=0 player=(0.5, 69.5, 0.5)
+[2026-04-10 23:12:19,887] [MainProcess/MainThread/INFO] (main.py/update) Tick diagnostics: time=240 chunks=64 visible=25 visible_quads=71142 chunk_bbox=x[-1,3] z[-3,3] pending_updates=0 built_queue=0 player=(0.5, 69.5, 0.5)
+[2026-04-10 23:12:20,076] [MainProcess/MainThread/INFO] (main.py/update) Tick diagnostics: time=360 chunks=64 visible=25 visible_quads=71142 chunk_bbox=x[-1,3] z[-3,3] pending_updates=0 built_queue=0 player=(0.5, 69.5, 0.5)
+[2026-04-10 23:12:20,259] [MainProcess/MainThread/INFO] (main.py/update) Tick diagnostics: time=480 chunks=64 visible=25 visible_quads=71142 chunk_bbox=x[-1,3] z[-3,3] pending_updates=0 built_queue=0 player=(0.5, 69.5, 0.5)
+[2026-04-10 23:12:20,441] [MainProcess/MainThread/INFO] (main.py/update) Tick diagnostics: time=600 chunks=64 visible=25 visible_quads=71142 chunk_bbox=x[-1,3] z[-3,3] pending_updates=0 built_queue=0 player=(0.5, 69.5, 0.5)
+[2026-04-10 23:12:20,628] [MainProcess/MainThread/INFO] (main.py/update) Tick diagnostics: time=720 chunks=64 visible=25 visible_quads=71142 chunk_bbox=x[-1,3] z[-3,3] pending_updates=0 built_queue=0 player=(0.5, 69.5, 0.5)
+[2026-04-10 23:12:20,811] [MainProcess/MainThread/INFO] (main.py/update) Tick diagnostics: time=840 chunks=64 visible=25 visible_quads=71142 chunk_bbox=x[-1,3] z[-3,3] pending_updates=0 built_queue=0 player=(0.5, 69.5, 0.5)
+[2026-04-10 23:12:20,999] [MainProcess/MainThread/INFO] (main.py/update) Tick diagnostics: time=960 chunks=64 visible=25 visible_quads=71142 chunk_bbox=x[-1,3] z[-3,3] pending_updates=0 built_queue=0 player=(0.5, 69.5, 0.5)
+[2026-04-10 23:12:21,744] [MainProcess/MainThread/INFO] (main.py/update) Tick diagnostics: time=1080 chunks=64 visible=25 visible_quads=71142 chunk_bbox=x[-1,3] z[-3,3] pending_updates=0 built_queue=0 player=(0.5, 69.5, 0.5)
+[2026-04-10 23:12:23,744] [MainProcess/MainThread/INFO] (main.py/update) Tick diagnostics: time=1200 chunks=64 visible=25 visible_quads=71142 chunk_bbox=x[-1,3] z[-3,3] pending_updates=0 built_queue=0 player=(0.5, 69.5, 0.5)
+[2026-04-10 23:12:25,743] [MainProcess/MainThread/INFO] (main.py/update) Tick diagnostics: time=1320 chunks=64 visible=25 visible_quads=71142 chunk_bbox=x[-1,3] z[-3,3] pending_updates=0 built_queue=0 player=(0.5, 69.5, 0.5)
+[2026-04-10 23:12:27,744] [MainProcess/MainThread/INFO] (main.py/update) Tick diagnostics: time=1440 chunks=64 visible=25 visible_quads=71142 chunk_bbox=x[-1,3] z[-3,3] pending_updates=0 built_queue=0 player=(0.5, 69.5, 0.5)
+[2026-04-10 23:12:29,744] [MainProcess/MainThread/INFO] (main.py/update) Tick diagnostics: time=1560 chunks=64 visible=25 visible_quads=71142 chunk_bbox=x[-1,3] z[-3,3] pending_updates=0 built_queue=0 player=(0.5, 69.5, 0.5)
+[2026-04-10 23:12:31,743] [MainProcess/MainThread/INFO] (main.py/update) Tick diagnostics: time=1680 chunks=64 visible=25 visible_quads=71142 chunk_bbox=x[-1,3] z[-3,3] pending_updates=0 built_queue=0 player=(0.5, 69.5, 0.5)

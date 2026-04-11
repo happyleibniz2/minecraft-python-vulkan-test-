@@ -462,26 +462,26 @@ class VulkanRenderer:
         vk.vkQueueWaitIdle(self.graphics_queue)
         vk.vkFreeCommandBuffers(self.device, self.command_pool, 1, [cmd_buf])
 
-    def _create_image(self, width, height, format=vk.VK_FORMAT_R8G8B8A8_UNORM, tiling=vk.VK_IMAGE_TILING_OPTIMAL, usage=vk.VK_IMAGE_USAGE_TRANSFER_DST_BIT | vk.VK_IMAGE_USAGE_SAMPLED_BIT, properties=vk.VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT):
-        image_info = vk.VkImageCreateInfo(
-            sType=vk.VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
-            imageType=vk.VK_IMAGE_TYPE_2D,
-            extent=vk.VkExtent3D(width=width, height=height, depth=1),
-            mipLevels=1,
-            arrayLayers=1,
-            format=format,
-            tiling=tiling,
-            initialLayout=vk.VK_IMAGE_LAYOUT_UNDEFINED,
-            usage=usage,
-            samples=vk.VK_SAMPLE_COUNT_1_BIT,
-            sharingMode=vk.VK_SHARING_MODE_EXCLUSIVE,
-        )
-        image = vk.vkCreateImage(self.device, image_info, None)
-        mem_reqs = vk.vkGetImageMemoryRequirements(self.device, image)
-        alloc_info = vk.VkMemoryAllocateInfo(sType=vk.VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, allocationSize=mem_reqs.size, memoryTypeIndex=self._find_memory_type(mem_reqs.memoryTypeBits, properties))
-        image_memory = vk.vkAllocateMemory(self.device, alloc_info, None)
-        vk.vkBindImageMemory(self.device, image, image_memory, 0)
-        return image, image_memory
+    def _create_image(self, width, height, format=vk.VK_FORMAT_R8G8B8A8_UNORM, tiling=vk.VK_IMAGE_TILING_OPTIMAL, usage=vk.VK_IMAGE_USAGE_TRANSFER_DST_BIT | vk.VK_IMAGE_USAGE_SAMPLED_BIT, properties=vk.VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, arrayLayers=1):
+            image_info = vk.VkImageCreateInfo(
+                sType=vk.VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+                imageType=vk.VK_IMAGE_TYPE_2D,
+                extent=vk.VkExtent3D(width=width, height=height, depth=1),
+                mipLevels=1,
+                arrayLayers=arrayLayers,
+                format=format,
+                tiling=tiling,
+                initialLayout=vk.VK_IMAGE_LAYOUT_UNDEFINED,
+                usage=usage,
+                samples=vk.VK_SAMPLE_COUNT_1_BIT,
+                sharingMode=vk.VK_SHARING_MODE_EXCLUSIVE,
+            )
+            image = vk.vkCreateImage(self.device, image_info, None)
+            mem_reqs = vk.vkGetImageMemoryRequirements(self.device, image)
+            alloc_info = vk.VkMemoryAllocateInfo(sType=vk.VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, allocationSize=mem_reqs.size, memoryTypeIndex=self._find_memory_type(mem_reqs.memoryTypeBits, properties))
+            image_memory = vk.vkAllocateMemory(self.device, alloc_info, None)
+            vk.vkBindImageMemory(self.device, image, image_memory, 0)
+            return image, image_memory
 
     def _transition_image_layout(self, image, old_layout, new_layout):
         cmd_buf = self._begin_single_time_commands()
@@ -526,8 +526,15 @@ class VulkanRenderer:
 
         self._end_single_time_commands(cmd_buf)
 
-    def _create_image_view(self, image, format=vk.VK_FORMAT_R8G8B8A8_UNORM):
-        view_info = vk.VkImageViewCreateInfo(sType=vk.VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, image=image, viewType=vk.VK_IMAGE_VIEW_TYPE_2D, format=format, components=vk.VkComponentMapping(), subresourceRange=vk.VkImageSubresourceRange(aspectMask=vk.VK_IMAGE_ASPECT_COLOR_BIT, baseMipLevel=0, levelCount=1, baseArrayLayer=0, layerCount=1))
+    def _create_image_view(self, image, format=vk.VK_FORMAT_R8G8B8A8_UNORM, viewType=vk.VK_IMAGE_VIEW_TYPE_2D):
+        view_info = vk.VkImageViewCreateInfo(
+            sType=vk.VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+            image=image,
+            viewType=viewType,
+            format=format,
+            components=vk.VkComponentMapping(),
+            subresourceRange=vk.VkImageSubresourceRange(aspectMask=vk.VK_IMAGE_ASPECT_COLOR_BIT, baseMipLevel=0, levelCount=1, baseArrayLayer=0, layerCount=vk.VK_REMAINING_ARRAY_LAYERS)
+        )
         view = vk.vkCreateImageView(self.device, view_info, None)
         return view
 
@@ -537,49 +544,60 @@ class VulkanRenderer:
         return sampler
 
     def upload_textures_real(self, raw_images, width, height):
-        """Perform staging buffer uploads and create VkImage, VkImageView and VkSampler for each image."""
-        resources = []
+        """Upload textures to single 2D texture array."""
+        num_layers = len(raw_images)
+        if num_layers == 0:
+            logging.warning("No textures to upload")
+            return
+
+        layer_size = width * height * 4  # RGBA
+        total_size = layer_size * num_layers
+
+        # Create staging buffer for all layers
+        staging_buf, staging_mem = self._create_buffer(total_size, vk.VK_BUFFER_USAGE_TRANSFER_SRC_BIT, vk.VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | vk.VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)
+
+        # Map and copy all layers
+        data_ptr = vk.vkMapMemory(self.device, staging_mem, 0, total_size, 0)
+        offset = 0
         for img_bytes in raw_images:
-            size = len(img_bytes)
+            ctypes.memmove(ctypes.addressof(data_ptr.contents) + offset, img_bytes, layer_size)
+            offset += layer_size
+        vk.vkUnmapMemory(self.device, staging_mem)
 
-            # create staging buffer
-            try:
-                staging_buf, staging_mem = self._create_buffer(size, vk.VK_BUFFER_USAGE_TRANSFER_SRC_BIT, vk.VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | vk.VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)
+        # Create 2D array image
+        array_layers = num_layers
+        image, image_mem = self._create_image(width, height, arrayLayers=array_layers, viewType=VK_IMAGE_VIEW_TYPE_2D_ARRAY)  # Update _create_image for arrayLayers
 
-                # map and copy
-                data_ptr = vk.vkMapMemory(self.device, staging_mem, 0, size, 0)
-                # data_ptr is a c_void_p, copy bytes
-                ctypes.memmove(data_ptr, img_bytes, size)
-                vk.vkUnmapMemory(self.device, staging_mem)
+        # Transition to transfer dst
+        self._transition_image_layout(image, vk.VK_IMAGE_LAYOUT_UNDEFINED, vk.VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
 
-                # create image
-                image, image_mem = self._create_image(width, height)
+        # Copy buffer to image (one region per layer)
+        cmd_buf = self._begin_single_time_commands()
+        for layer in range(num_layers):
+            region = vk.VkBufferImageCopy(
+                bufferOffset=layer * layer_size,
+                bufferRowLength=0, bufferImageHeight=0,
+                imageSubresource=vk.VkImageSubresourceLayers(aspectMask=vk.VK_IMAGE_ASPECT_COLOR_BIT, mipLevel=0, baseArrayLayer=layer, layerCount=1),
+                imageOffset=vk.VkOffset3D(0,0,0),
+                imageExtent=vk.VkExtent3D(width, height, 1)
+            )
+            vk.vkCmdCopyBufferToImage(cmd_buf, staging_buf, image, vk.VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, [region])
+        self._end_single_time_commands(cmd_buf)
 
-                # transition, copy, transition
-                self._transition_image_layout(image, vk.VK_IMAGE_LAYOUT_UNDEFINED, vk.VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
-                self._copy_buffer_to_image(staging_buf, image, width, height)
-                self._transition_image_layout(image, vk.VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, vk.VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+        # Transition to shader read
+        self._transition_image_layout(image, vk.VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, vk.VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
 
-                # create view and sampler
-                view = self._create_image_view(image)
-                sampler = self._create_sampler()
+        # Create array view and sampler
+        self.texture_image = image
+        self.texture_image_mem = image_mem
+        self.texture_view = self._create_image_view(image, viewType=VK_IMAGE_VIEW_TYPE_2D_ARRAY)
+        self.texture_sampler = self._create_sampler()
 
-                # cleanup staging
-                try:
-                    vk.vkDestroyBuffer(self.device, staging_buf, None)
-                except Exception:
-                    pass
-                try:
-                    vk.vkFreeMemory(self.device, staging_mem, None)
-                except Exception:
-                    pass
+        # Cleanup staging
+        vk.vkDestroyBuffer(self.device, staging_buf, None)
+        vk.vkFreeMemory(self.device, staging_mem, None)
 
-                resources.append({"image": image, "memory": image_mem, "view": view, "sampler": sampler})
-            except Exception as e:
-                logging.warning("Failed to upload texture: %s", e)
-
-        self._texture_resources = resources
-        logging.info("Uploaded %d textures to Vulkan (placeholder resources)", len(resources))
+        logging.info(f"Uploaded texture array: {width}x{height}x{num_layers}")
 
     def cleanup(self):
         try:

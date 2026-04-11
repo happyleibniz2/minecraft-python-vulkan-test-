@@ -1,0 +1,4 @@
+[LOGS]
+[2026-04-10 23:07:43,687] [MainProcess/MainThread/INFO] (main.py/init_logger) Logger initialized at logs\1775887663.687762.log
+[2026-04-10 23:07:43,687] [MainProcess/MainThread/CRITICAL] (main.py/main) Startup imports failed: unindent does not match any outer indentation level (vulkan_renderer.py, line 486)
+[2026-04-10 23:07:43,687] [MainProcess/MainThread/CRITICAL] (main.py/main) Common fix: install runtime dependencies from pyproject/poetry (e.g. glfw, PyOpenGL).

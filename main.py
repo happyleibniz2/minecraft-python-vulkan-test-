@@ -119,33 +119,31 @@ class Window:
 		if has_vulkan:
 			logging.info("Running with Vulkan renderer (scaffold)")
 
-			# create minimal shader/texture manager compatible with World and Player
-			self.shader = VulkanShader("shaders/alpha_lighting/vert.glsl", "shaders/alpha_lighting/frag.glsl")
+			# create texture manager first (no renderer dep)
 			self.texture_manager = VulkanTextureManager(16, 16, 256)
 
-			# create world and player structures (no GL calls)
+			# create world/player first (shader stub OK for init)
 			logging.info("Creating World (Vulkan path)")
+			self.shader = VulkanShader(self.vulkan, "shaders/alpha_lighting/vert.glsl", "shaders/alpha_lighting/frag.glsl")
+			self.shader.create_pipeline(self.vulkan.render_pass)
+			self.vulkan.shader = self.shader
 			self.world = World(self.shader, None, self.texture_manager, self.options)
 			logging.info("Setting up player & camera (Vulkan path)")
 			self.player = Player(self.world, self.shader, self.width, self.height)
 			self.world.player = self.player
 			spawn_position = self.world.find_spawn_position(0, 0)
 			self.player.teleport(spawn_position)
+			self.vulkan.world = self.world
 
 			# schedule-like behaviour
 			self._scheduled = []
 
-			# Vulkan renderer may want access to textures raw bytes for GPU upload
-			if getattr(self, "vulkan", None):
-				raw_images = self.texture_manager.get_raw_images()
-				try:
-					# try the real upload if implemented
-					if hasattr(self.vulkan, "upload_textures_real"):
-						self.vulkan.upload_textures_real(raw_images, self.texture_manager.texture_width, self.texture_manager.texture_height)
-					else:
-						self.vulkan.upload_textures(raw_images, self.texture_manager.texture_width, self.texture_manager.texture_height)
-				except Exception:
-					pass
+			# Vulkan renderer upload textures
+			raw_images = self.texture_manager.get_raw_images()
+			try:
+				self.vulkan.upload_textures_real(raw_images, self.texture_manager.texture_width, self.texture_manager.texture_height)
+			except Exception as e:
+				logging.warning(f"Texture upload failed: {e}")
 
 			logging.info(
 				"Vulkan init summary: chunks=%d player_pos=%s",
